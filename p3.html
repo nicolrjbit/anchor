@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>锚点 · 必去景点</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="theme.css" />
+    <link rel="stylesheet" href="flow-layout.css" />
+    <style>
+      .p3-split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 440px);
+        gap: 1.25rem;
+        align-items: stretch;
+        min-height: min(68vh, 680px);
+      }
+
+      .list-panel {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        max-height: min(72vh, 720px);
+        overflow-y: auto;
+        padding-right: 0.25rem;
+      }
+
+      .attr-card {
+        position: relative;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.75rem;
+        padding: 0.85rem 0.9rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: #fff;
+        box-shadow: var(--shadow);
+        transition: border-color 0.15s, box-shadow 0.15s;
+      }
+
+      .attr-card:has(input:checked) {
+        border-color: rgba(1, 68, 33, 0.45);
+        box-shadow: 0 6px 20px rgba(1, 68, 33, 0.08);
+      }
+
+      .attr-card.is-disabled {
+        opacity: 0.48;
+        pointer-events: none;
+      }
+
+      .attr-card input {
+        width: 1.15rem;
+        height: 1.15rem;
+        margin-top: 0.2rem;
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+
+      .attr-body {
+        min-width: 0;
+      }
+
+      .attr-name {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1rem;
+        margin: 0 0 0.25rem;
+        color: var(--ink);
+      }
+
+      .attr-desc {
+        margin: 0 0 0.5rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .attr-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem 0.65rem;
+        margin-bottom: 0.45rem;
+      }
+
+      .rec-stars {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--accent-warm);
+        letter-spacing: 0.02em;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+
+      .tag {
+        font-size: 0.68rem;
+        font-weight: 600;
+        padding: 0.2rem 0.45rem;
+        border-radius: 999px;
+        line-height: 1.2;
+      }
+
+      .tag--stamina-h {
+        background: var(--sakura-soft);
+        color: var(--rose-ui-deep);
+      }
+
+      .tag--stamina-m {
+        background: rgba(1, 68, 33, 0.12);
+        color: var(--accent);
+      }
+
+      .tag--stamina-l {
+        background: rgba(45, 74, 140, 0.1);
+        color: #2d4a8c;
+      }
+
+      .tag--time {
+        background: rgba(20, 17, 13, 0.06);
+        color: var(--ink-soft);
+      }
+
+      .map-panel {
+        position: relative;
+        border-radius: calc(var(--radius) + 4px);
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background: #eef2ef;
+        min-height: 280px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .map-panel__hint {
+        margin: 0;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--accent);
+        background: rgba(1, 68, 33, 0.06);
+        border-bottom: 1px solid var(--line);
+      }
+
+      #amap-map {
+        flex: 1;
+        min-height: 260px;
+        width: 100%;
+      }
+
+      .map-panel__bar {
+        padding: 0.55rem 0.75rem;
+        font-size: 0.78rem;
+        color: var(--ink-soft);
+        background: var(--card);
+        border-top: 1px solid var(--line);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.35rem;
+      }
+
+      .map-panel__bar strong {
+        font-family: var(--font-display);
+        color: var(--ink);
+      }
+
+      .map-fallback {
+        display: none;
+        padding: 2rem 1rem;
+        text-align: center;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .map-fallback[data-visible="true"] {
+        display: block;
+      }
+
+      .actions-p3 {
+        margin-top: 1.25rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .select-hint {
+        margin: 0;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--accent);
+      }
+
+      .city-pack-note {
+        margin: 0.5rem 0 0;
+        padding: 0.55rem 0.75rem;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        color: var(--warn, #b45309);
+        background: rgba(180, 83, 9, 0.08);
+        border: 1px dashed rgba(180, 83, 9, 0.35);
+        border-radius: 10px;
+        max-width: 42em;
+      }
+
+      .city-pack-note[hidden] {
+        display: none !important;
+      }
+
+      .list-empty {
+        margin: 0;
+        padding: 1.5rem 1rem;
+        text-align: center;
+        font-size: 0.88rem;
+        color: var(--muted);
+        line-height: 1.6;
+        border: 1px dashed var(--line);
+        border-radius: var(--radius);
+        background: rgba(255, 252, 253, 0.8);
+      }
+
+      @media (max-width: 900px) {
+        .p3-split {
+          grid-template-columns: 1fr;
+          min-height: unset;
+        }
+
+        .list-panel {
+          max-height: none;
+        }
+
+        .map-panel {
+          position: sticky;
+          bottom: 0;
+          min-height: 300px;
+        }
+      }
+    </style>
+  </head>
+  <body class="page-flow">
+    <div class="shell shell--wide">
+      <header class="top-bar">
+        <a class="back-link" href="p2.html">← 返回</a>
+        <div class="brand">
+          <svg
+            class="brand-icon"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              d="M16 3L5 9.5V17c0 6.5 4.5 12 11 13.5 6.5-1.5 11-7 11-13.5V9.5L16 3z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+            <circle cx="16" cy="15" r="3.2" fill="currentColor" />
+            <path d="M16 18.5v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+          </svg>
+          <div>
+            <div class="brand-name">锚点</div>
+            <div class="brand-tag">行程规划</div>
+          </div>
+        </div>
+        <span class="step-pill">步骤 3 / 3</span>
+      </header>
+
+      <section class="step-hero" aria-labelledby="step-title">
+        <span class="step-hero__badge" aria-hidden="true">3</span>
+        <div class="step-hero__body">
+          <span class="step-hero__tag">必去景点</span>
+          <h1 class="step-hero__title" id="step-title">选择此行的必去景点</h1>
+          <p class="step-hero__desc">
+            勾选心仪景点，右侧地图将按简易 TSP 连接路径并估算路程。推荐与口碑为演示聚合数据。
+          </p>
+          <p class="step-hero__meta" id="trip-meta"></p>
+          <p class="city-pack-note" id="city-pack-note" hidden></p>
+        </div>
+      </section>
+
+      <section class="form-card" aria-label="景点选择">
+        <div class="form-card__head">
+          <h2>景点清单</h2>
+          <p class="select-hint" id="select-hint"></p>
+        </div>
+
+      <div class="p3-split">
+        <div class="list-panel" id="attr-list" role="group" aria-label="景点列表"></div>
+
+        <div class="map-panel">
+          <p class="map-panel__hint" id="map-city-label"></p>
+          <div id="amap-map" role="application" aria-label="地图预览"></div>
+          <div class="map-fallback" id="map-fallback" data-visible="false">
+            地图脚本未加载时，仍可勾选左侧景点；路径距离为球面直线估算。
+          </div>
+          <div class="map-panel__bar">
+            <span id="path-summary">未选择景点</span>
+            <span id="path-km" style="font-variant-numeric: tabular-nums"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-p3">
+        <button type="button" class="primary" id="btn-confirm" disabled>暂存必去清单（演示）</button>
+      </div>
+      </section>
+    </div>
+
+    <script src="amap-config.js"></script>
+    <script src="amap-loader.js"></script>
+    <script>
+      (function () {
+        /** 演示数据：GCJ-02 坐标（高德坐标系） */
+        var MOCK = {
+          北京: [
+            {
+              id: "bj-gg",
+              name: "故宫博物院",
+              desc: "中轴线上的皇家宫殿群，小红书「出片」与历史密度双高；建议早场错峰。",
+              recommend: 4.9,
+              stamina: "高",
+              duration: "3～4 小时",
+              lng: 116.397026,
+              lat: 39.918058,
+            },
+            {
+              id: "bj-tt",
+              name: "天坛公园",
+              desc: "祭天建筑群与古柏林，大众点评「适合慢逛、体力中等」。",
+              recommend: 4.7,
+              stamina: "中",
+              duration: "2～3 小时",
+              lng: 116.410003,
+              lat: 39.882229,
+            },
+            {
+              id: "bj-yhy",
+              name: "颐和园",
+              desc: "昆明湖与长廊，小红书「日落机位」多；园区大、步行长。",
+              recommend: 4.8,
+              stamina: "高",
+              duration: "半天",
+              lng: 116.275179,
+              lat: 39.999551,
+            },
+            {
+              id: "bj-nlg",
+              name: "南锣鼓巷片区",
+              desc: "胡同与小店聚集，大众点评「吃喝逛一体」；体力可控。",
+              recommend: 4.3,
+              stamina: "低",
+              duration: "1～2 小时",
+              lng: 116.403694,
+              lat: 39.939073,
+            },
+            {
+              id: "bj-798",
+              name: "798 艺术区",
+              desc: "画廊与咖啡，小红书「文艺向」；步行中等。",
+              recommend: 4.5,
+              stamina: "中",
+              duration: "2～3 小时",
+              lng: 116.493648,
+              lat: 39.984266,
+            },
+            {
+              id: "bj-ymy",
+              name: "圆明园遗址",
+              desc: "历史遗迹与大草坪，适合与颐和园同日安排（距离近）。",
+              recommend: 4.4,
+              stamina: "中",
+              duration: "2 小时",
+              lng: 116.309748,
+              lat: 40.008956,
+            },
+          ],
+          上海: [
+            {
+              id: "sh-wt",
+              name: "外滩",
+              desc: "黄浦江天际线，大众点评「必打卡」；夜间灯光与日间建筑各有趣味。",
+              recommend: 4.8,
+              stamina: "低",
+              duration: "1～2 小时",
+              lng: 121.490317,
+              lat: 31.239667,
+            },
+            {
+              id: "sh-yy",
+              name: "豫园 · 城隍庙",
+              desc: "江南园林与小吃，小红书「烟火气」；人流大需注意体力。",
+              recommend: 4.6,
+              stamina: "中",
+              duration: "2～3 小时",
+              lng: 121.492064,
+              lat: 31.226721,
+            },
+            {
+              id: "sh-tz",
+              name: "田子坊",
+              desc: "石库门里弄与小店，适合轻量漫步。",
+              recommend: 4.2,
+              stamina: "低",
+              duration: "1～2 小时",
+              lng: 121.469358,
+              lat: 31.210344,
+            },
+            {
+              id: "sh-dsn",
+              name: "上海迪士尼度假区",
+              desc: "大众点评「亲子与情侣」高分；全天高体力消耗。",
+              recommend: 4.9,
+              stamina: "高",
+              duration: "全天",
+              lng: 121.665387,
+              lat: 31.14419,
+            },
+            {
+              id: "sh-dm",
+              name: "东方明珠",
+              desc: "登高俯瞰浦东，小红书「地标合影」；排队时间视季节波动。",
+              recommend: 4.4,
+              stamina: "低",
+              duration: "1.5～2 小时",
+              lng: 121.499763,
+              lat: 31.239693,
+            },
+          ],
+          南京: [
+            {
+              id: "nj-zs",
+              name: "中山陵 · 钟山风景区",
+              desc: "梧桐大道与陵寝轴线，大众点评必访；台阶较多。",
+              recommend: 4.8,
+              stamina: "高",
+              duration: "半天",
+              lng: 118.855197,
+              lat: 32.058377,
+            },
+            {
+              id: "nj-fzm",
+              name: "夫子庙 · 秦淮河",
+              desc: "夜景与小吃，小红书「金陵烟火」代表。",
+              recommend: 4.7,
+              stamina: "中",
+              duration: "2～3 小时",
+              lng: 118.794744,
+              lat: 32.021544,
+            },
+            {
+              id: "nj-xwh",
+              name: "玄武湖",
+              desc: "环湖步行轻松，适合与城墙同日安排。",
+              recommend: 4.5,
+              stamina: "低",
+              duration: "2 小时",
+              lng: 118.797861,
+              lat: 32.074534,
+            },
+          ],
+          成都: [
+            {
+              id: "cd-jd",
+              name: "宽窄巷子",
+              desc: "老成都慢生活，大众点评「逛吃一体」。",
+              recommend: 4.6,
+              stamina: "低",
+              duration: "1～2 小时",
+              lng: 104.053839,
+              lat: 30.669496,
+            },
+            {
+              id: "cd-panda",
+              name: "大熊猫繁育研究基地",
+              desc: "早场看熊猫活跃，小红书亲子向高分。",
+              recommend: 4.9,
+              stamina: "中",
+              duration: "半天",
+              lng: 104.141874,
+              lat: 30.734256,
+            },
+            {
+              id: "cd-jf",
+              name: "锦里古街",
+              desc: "夜景与川味小吃，体力消耗低。",
+              recommend: 4.4,
+              stamina: "低",
+              duration: "1～2 小时",
+              lng: 104.048094,
+              lat: 30.645994,
+            },
+          ],
+          杭州: [
+            {
+              id: "hz-xh",
+              name: "西湖风景名胜区",
+              desc: "环湖与断桥、苏堤，小红书「四季皆可」；可按段拆分降低体力。",
+              recommend: 4.9,
+              stamina: "中",
+              duration: "半天～全天",
+              lng: 120.145319,
+              lat: 30.242545,
+            },
+            {
+              id: "hz-lf",
+              name: "灵隐寺 · 飞来峰",
+              desc: "禅意与石刻，大众点评「香火旺」；含台阶，体力中等偏高。",
+              recommend: 4.7,
+              stamina: "高",
+              duration: "2～3 小时",
+              lng: 120.101667,
+              lat: 30.240833,
+            },
+            {
+              id: "hz-xixi",
+              name: "西溪湿地",
+              desc: "摇橹与木栈道，适合半日轻徒步。",
+              recommend: 4.5,
+              stamina: "中",
+              duration: "半天",
+              lng: 120.063056,
+              lat: 30.268889,
+            },
+            {
+              id: "hz-slt",
+              name: "宋城",
+              desc: "演出与仿古街区，亲子向；场内步行中等。",
+              recommend: 4.4,
+              stamina: "中",
+              duration: "半天",
+              lng: 120.101389,
+              lat: 30.181944,
+            },
+          ],
+        };
+
+        /** 与 MOCK 城市对齐的地图中心（BD-09），无景点包时用地理编码兜底 */
+        var CITY_CENTERS = {
+          上海: { lng: 121.473701, lat: 31.230416 },
+          南京: { lng: 118.796877, lat: 32.060255 },
+          成都: { lng: 104.065735, lat: 30.659462 },
+          杭州: { lng: 120.153576, lat: 30.287459 },
+        };
+
+        function normalizeCity(name) {
+          if (!name) return "";
+          var s = String(name).trim();
+          if (s.length > 1 && s.charAt(s.length - 1) === "市") s = s.slice(0, -1);
+          return s;
+        }
+
+        function loadTrip() {
+          try {
+            var raw = sessionStorage.getItem("anchorTrip");
+            if (raw) return JSON.parse(raw);
+          } catch (e) {}
+          return { days: 3, destination: "北京", departure: "" };
+        }
+
+        function getAttractionsForCityKey(cityKey) {
+          if (cityKey && MOCK[cityKey]) return MOCK[cityKey];
+          return [];
+        }
+
+        function distKm(a, b) {
+          var R = 6371;
+          function toRad(d) {
+            return (d * Math.PI) / 180;
+          }
+          var dLat = toRad(b.lat - a.lat);
+          var dLng = toRad(b.lng - a.lng);
+          var la1 = toRad(a.lat);
+          var la2 = toRad(b.lat);
+          var h =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+          return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+        }
+
+        function tspOpenPath(points) {
+          var n = points.length;
+          if (n === 0) return { ordered: [], km: 0 };
+          if (n === 1) return { ordered: [points[0]], km: 0 };
+          var idx = [];
+          for (var i = 0; i < n; i++) idx.push(i);
+
+          function permutations(arr) {
+            if (arr.length <= 1) return [arr.slice()];
+            var out = [];
+            for (var i = 0; i < arr.length; i++) {
+              var rest = arr.slice(0, i).concat(arr.slice(i + 1));
+              var sub = permutations(rest);
+              for (var j = 0; j < sub.length; j++) {
+                out.push([arr[i]].concat(sub[j]));
+              }
+            }
+            return out;
+          }
+
+          var perms = permutations(idx);
+          var bestOrder = null;
+          var bestD = Infinity;
+          for (var p = 0; p < perms.length; p++) {
+            var perm = perms[p];
+            var len = 0;
+            for (var k = 0; k < n - 1; k++) {
+              len += distKm(points[perm[k]], points[perm[k + 1]]);
+            }
+            if (len < bestD) {
+              bestD = len;
+              bestOrder = perm;
+            }
+          }
+          var ordered = [];
+          for (var t = 0; t < bestOrder.length; t++) {
+            ordered.push(points[bestOrder[t]]);
+          }
+          return { ordered: ordered, km: bestD };
+        }
+
+        function staminaClass(s) {
+          if (s === "高") return "tag--stamina-h";
+          if (s === "低") return "tag--stamina-l";
+          return "tag--stamina-m";
+        }
+
+        var trip = loadTrip();
+        var maxPick = trip.days === 1 ? 2 : 5;
+        var cityKey = normalizeCity(trip.destination || "");
+        var hasLocalPack = cityKey && MOCK[cityKey];
+        var attractions = hasLocalPack ? MOCK[cityKey] : [];
+
+        document.getElementById("trip-meta").innerHTML =
+          "目的地 <strong>" +
+          (trip.destination || "—") +
+          "</strong> · <strong>" +
+          (trip.days || "—") +
+          " 天</strong> · " +
+          (trip.days === 1 ? "最多选 2 个必去点" : "最多选 5 个");
+
+        var packNote = document.getElementById("city-pack-note");
+        if (!hasLocalPack) {
+          packNote.hidden = false;
+          packNote.textContent =
+            "「" +
+            (trip.destination || "—") +
+            "」暂无演示景点库，列表为空；地图仍会定位到该目的地。完整演示请从第一页选择 上海 / 南京 / 成都。";
+        }
+
+        document.getElementById("map-city-label").textContent =
+          "地图范围：第一页所选目的地「" + (trip.destination || "—") + "」";
+
+        document.getElementById("select-hint").textContent = hasLocalPack
+          ? "已选 0 / " + maxPick + " 个 · 勾选后地图将按简易 TSP 连接并估算路程"
+          : "暂无可选演示景点，请返回上一步调整目的地或稍后再试";
+
+        var listEl = document.getElementById("attr-list");
+        var mapEl = document.getElementById("amap-map");
+        var fallbackEl = document.getElementById("map-fallback");
+        var pathSummary = document.getElementById("path-summary");
+        var pathKm = document.getElementById("path-km");
+        var btnConfirm = document.getElementById("btn-confirm");
+
+        var selectedIds = [];
+        var map = null;
+        var markers = [];
+        var polyline = null;
+        var idToAttr = {};
+
+        attractions.forEach(function (a) {
+          idToAttr[a.id] = a;
+        });
+
+        function renderList() {
+          listEl.innerHTML = "";
+          if (!attractions.length) {
+            var empty = document.createElement("p");
+            empty.className = "list-empty";
+            empty.textContent =
+              "当前目的地暂无内置演示景点。请从第一页将目的地设为 上海、南京 或 成都，或等待后续接入真实推荐数据。";
+            listEl.appendChild(empty);
+            return;
+          }
+          attractions.forEach(function (a) {
+            var card = document.createElement("label");
+            card.className = "attr-card";
+            card.setAttribute("data-id", a.id);
+            var chk = document.createElement("input");
+            chk.type = "checkbox";
+            chk.value = a.id;
+            chk.addEventListener("change", onCheckChange);
+            var body = document.createElement("div");
+            body.className = "attr-body";
+            body.innerHTML =
+              '<p class="attr-name"></p>' +
+              '<p class="attr-desc"></p>' +
+              '<div class="attr-meta-row">' + '<span class="rec-stars"></span>' + "</div>" +
+              '<div class="tags"></div>';
+            body.querySelector(".attr-name").textContent = a.name;
+            body.querySelector(".attr-desc").textContent = a.desc;
+            body.querySelector(".rec-stars").textContent =
+              "推荐度 " + a.recommend + " / 5（演示聚合）";
+            var tags = body.querySelector(".tags");
+            var t1 = document.createElement("span");
+            t1.className = "tag " + staminaClass(a.stamina);
+            t1.textContent = "体力消耗：" + a.stamina;
+            var t2 = document.createElement("span");
+            t2.className = "tag tag--time";
+            t2.textContent = "建议游玩：" + a.duration;
+            tags.appendChild(t1);
+            tags.appendChild(t2);
+            card.appendChild(chk);
+            card.appendChild(body);
+            listEl.appendChild(card);
+          });
+          syncDisabled();
+        }
+
+        function getCheckedIds() {
+          var ids = [];
+          listEl.querySelectorAll('input[type="checkbox"]:checked').forEach(function (c) {
+            ids.push(c.value);
+          });
+          return ids;
+        }
+
+        function syncDisabled() {
+          var n = getCheckedIds().length;
+          listEl.querySelectorAll(".attr-card").forEach(function (card) {
+            var id = card.getAttribute("data-id");
+            var input = card.querySelector('input[type="checkbox"]');
+            var checked = input.checked;
+            if (!checked && n >= maxPick) {
+              card.classList.add("is-disabled");
+              input.disabled = true;
+            } else {
+              card.classList.remove("is-disabled");
+              input.disabled = false;
+            }
+          });
+        }
+
+        function onCheckChange() {
+          selectedIds = getCheckedIds();
+          var n = selectedIds.length;
+          document.getElementById("select-hint").textContent =
+            "已选 " + n + " / " + maxPick + " 个 · 地图已按 TSP 近似路径连接";
+          btnConfirm.disabled = n < 1;
+          updateMap();
+          syncDisabled();
+        }
+
+        function clearMapOverlays() {
+          if (!map) return;
+          markers.forEach(function (m) {
+            map.remove(m);
+          });
+          markers = [];
+          if (polyline) {
+            map.remove(polyline);
+            polyline = null;
+          }
+        }
+
+        function updateMap() {
+          var pts = selectedIds.map(function (id) {
+            return idToAttr[id];
+          }).filter(Boolean);
+
+          if (!map || typeof AMap === "undefined") {
+            if (pts.length === 0) {
+              pathSummary.textContent = "未选择景点";
+              pathKm.textContent = "";
+            } else {
+              var r0 = tspOpenPath(pts);
+              pathSummary.textContent =
+                "顺序：" + r0.ordered.map(function (p, i) {
+                  return String.fromCharCode(65 + i) + "." + p.name;
+                }).join(" → ");
+              pathKm.textContent = "约 " + r0.km.toFixed(1) + " km（直线球面）";
+            }
+            if (typeof AMap === "undefined") {
+              fallbackEl.dataset.visible = "true";
+              mapEl.style.display = "none";
+            }
+            return;
+          }
+
+          fallbackEl.dataset.visible = "false";
+          mapEl.style.display = "";
+          clearMapOverlays();
+
+          if (pts.length === 0) {
+            pathSummary.textContent = "未选择景点";
+            pathKm.textContent = "";
+            centerMapToDestination();
+            return;
+          }
+
+          var tsp = tspOpenPath(pts);
+          var ordered = tsp.ordered;
+          var path = ordered.map(function (p) {
+            return [p.lng, p.lat];
+          });
+
+          for (var i = 0; i < ordered.length; i++) {
+            var p = ordered[i];
+            var mk = new AMap.Marker({
+              position: [p.lng, p.lat],
+              map: map,
+              label: {
+                content:
+                  '<span style="border:1px solid rgb(1,68,33);color:rgb(1,68,33);font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(255,252,253,.95)">' +
+                  String.fromCharCode(65 + i) +
+                  "</span>",
+                direction: "right",
+                offset: new AMap.Pixel(8, -8),
+              },
+            });
+            markers.push(mk);
+          }
+
+          if (path.length >= 2) {
+            polyline = new AMap.Polyline({
+              path: path,
+              strokeColor: "rgb(1, 68, 33)",
+              strokeWeight: 3,
+              strokeOpacity: 0.78,
+              strokeStyle: "dashed",
+              map: map,
+            });
+          }
+
+          map.setFitView(markers.concat(polyline ? [polyline] : []), false, [48, 48, 48, 48]);
+
+          pathSummary.textContent =
+            "游览顺序：" + ordered.map(function (p, i) {
+              return String.fromCharCode(65 + i) + "." + p.name;
+            }).join(" → ");
+          pathKm.textContent = "约 " + tsp.km.toFixed(1) + " km（球面直线，非驾车导航距离）";
+        }
+
+        function centerMapToDestination() {
+          if (!map || typeof AMap === "undefined") return;
+          var raw = (trip.destination || "").trim() || "北京";
+          var key = normalizeCity(raw);
+          if (CITY_CENTERS[key]) {
+            var c = CITY_CENTERS[key];
+            map.setZoomAndCenter(12, [c.lng, c.lat]);
+            return;
+          }
+          if (attractions.length) {
+            var a0 = attractions[0];
+            map.setZoomAndCenter(12, [a0.lng, a0.lat]);
+            return;
+          }
+          if (typeof AMap.Geocoder !== "function") {
+            map.setZoomAndCenter(11, [116.397428, 39.91823]);
+            return;
+          }
+          var geocoder = new AMap.Geocoder({ city: "全国" });
+          geocoder.getLocation(raw, function (status, result) {
+            if (!map) return;
+            if (status === "complete" && result.geocodes && result.geocodes[0]) {
+              var loc = result.geocodes[0].location;
+              map.setZoomAndCenter(12, [loc.lng, loc.lat]);
+            } else {
+              map.setZoomAndCenter(11, [116.397428, 39.91823]);
+            }
+          });
+        }
+
+        function initMap() {
+          if (typeof AMap === "undefined") {
+            fallbackEl.dataset.visible = "true";
+            mapEl.style.display = "none";
+            return;
+          }
+          map = new AMap.Map("amap-map", {
+            zoom: 12,
+            viewMode: "2D",
+          });
+          centerMapToDestination();
+        }
+
+        function bootP3() {
+          renderList();
+          if (!window.AmapApp || !AmapApp.isConfigured()) {
+            fallbackEl.dataset.visible = "true";
+            mapEl.style.display = "none";
+            document.getElementById("map-city-label").textContent +=
+              "（请配置 amap-config.js 以启用地图）";
+            return;
+          }
+          AmapApp.loadAmap(["AMap.Geocoder"])
+            .then(function () {
+              initMap();
+              updateMap();
+            })
+            .catch(function () {
+              fallbackEl.dataset.visible = "true";
+              mapEl.style.display = "none";
+            });
+        }
+
+        bootP3();
+
+        btnConfirm.addEventListener("click", function () {
+          var ids = getCheckedIds();
+          console.log("[P3] 必去景点（演示）", { ids: ids, trip: trip });
+          alert("演示：已记录 " + ids.length + " 个景点（详见控制台）。");
+        });
+      })();
+    </script>
+  </body>
+</html>
